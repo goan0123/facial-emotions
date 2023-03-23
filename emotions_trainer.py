@@ -5,6 +5,40 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import train_test_split
 import os
 import numpy as np
+from keras.preprocessing.image import ImageDataGenerator
+
+
+datagen = ImageDataGenerator(
+    rescale=1./255,
+    samplewise_center=True,
+    samplewise_std_normalization=True,
+    rotation_range=30,
+    shear_range=0.2,
+    zoom_range=[0.8, 1.2],
+    horizontal_flip=True,
+    validation_split=0.2
+)
+
+
+train_generator = datagen.flow_from_directory(
+    directory="data/train/",
+    target_size=(64, 64),
+    color_mode='rgb',
+    class_mode='binary',
+    batch_size=32,
+    subset='training'
+)
+validation_generator = datagen.flow_from_directory(
+    directory="data/val/",
+    target_size=(64, 64),
+    color_mode='rgb',
+    class_mode='binary',
+    batch_size=32,
+    subset='validation'
+)
+
+
+
 
 input_dir = 'data'
 emotions=['Angry', 'Depressed', 'Disgust', 'Excited', 'Fear', 'Frustrated', 'Happy','Neutral','Sad','Surprise']
@@ -59,4 +93,9 @@ modelpath="/model_name.hdf5"
 checkpointer = ModelCheckpoint(filepath=modelpath, monitor='val_loss', verbose=0, save_best_only=True)
 
 
-history=model.fit(X_train, y_train, validation_split=0.25, epochs=100, batch_size=32, verbose=0, callbacks=[early_stopping_callback,checkpointer])
+model.fit(
+    train_generator,
+    steps_per_epoch = train_generator.samples // 32,
+    validation_data = validation_generator, 
+    validation_steps = validation_generator.samples // 32
+)
